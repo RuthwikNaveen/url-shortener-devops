@@ -1,0 +1,62 @@
+
+services:
+  # Backend API Service - Node.js + Express
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: url-shortener-api
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - ./backend/.env
+    networks:
+      - url-shortener-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend Service - React + Vite + Nginx
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: url-shortener-ui
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - url-shortener-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Custom bridge network for service communication
+networks:
+  url-shortener-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
