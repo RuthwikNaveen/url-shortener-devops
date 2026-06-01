@@ -27,3 +27,5 @@ Thumbs.db
 coverage/
 
 *.tar
+
+kubernetes/secret.yaml
